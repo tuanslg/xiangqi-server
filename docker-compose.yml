@@ -1,0 +1,56 @@
+# Production API stack: Caddy (HTTPS) -> api (Node + Pikafish) -> Postgres.
+# The frontend is hosted separately (Cloudflare Pages) and calls this API; see DEPLOY.md.
+# Only Caddy publishes ports; the database and api are reachable from inside the compose network only.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: xiangqi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: xiangqi
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xiangqi -d xiangqi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://xiangqi:${POSTGRES_PASSWORD}@db:5432/xiangqi
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      # The frontend's origin, e.g. https://app.example.com (CORS, CSRF and WebSocket origin checks).
+      ALLOWED_ORIGINS: ${APP_ORIGIN:?set APP_ORIGIN in .env}
+      TRUST_PROXY: "true" # safe: only Caddy can reach this container
+      COOKIE_SECURE: "true"
+      ENGINE_POOL_SIZE: ${ENGINE_POOL_SIZE:-2}
+      ENGINE_THREADS: ${ENGINE_THREADS:-1}
+      ENGINE_HASH_MB: ${ENGINE_HASH_MB:-32}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
