@@ -1,0 +1,37 @@
+{
+  "name": "xiangqi-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "engine:fetch": "./scripts/fetch-pikafish.sh",
+    "selfplay": "tsx scripts/selfplay.ts",
+    "typecheck": "tsc -p . && tsc -p shared",
+    "test": "vitest run",
+    "shared:check": "node scripts/shared-sync.mjs check ../xiangqi-client/shared",
+    "shared:push": "node scripts/shared-sync.mjs copy ../xiangqi-client/shared"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.3",
+    "@fastify/cors": "^11.3.1",
+    "@fastify/rate-limit": "^11.2.1",
+    "@fastify/websocket": "^11.3.4",
+    "@xiangqi/shared": "file:./shared",
+    "fastify": "^5.12.7",
+    "google-auth-library": "^10.9.1",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/pg": "^8.23.1",
+    "@types/ws": "^8.18.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "ws": "^8.22.0",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.12"
+  }
+}
